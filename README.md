@@ -1,1 +1,1 @@
-# JavaProject
+# jenkins-pipeline-example
