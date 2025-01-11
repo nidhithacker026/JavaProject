@@ -1,33 +1,42 @@
 pipeline {
     agent any
-
-    tools {
-        maven "MAVEN"
-        jdk "JDK"
+    environment {
+        // Set the WAR file location and Tomcat URL
+        WAR_FILE = '**/target/*.war'
+        TOMCAT_URL = 'http://localhost:8081'
+        CREDENTIALS_ID = 'tomcat-credentials' // Jenkins credentials ID for Tomcat
     }
-
     stages {
-        stage('Initialize'){
-            steps{
-                echo "PATH = ${M2_HOME}/bin:${PATH}"
-                echo "M2_HOME = /opt/maven"
-            }
-        }
-        stage('Build') {
+        stage('Compile') {
             steps {
-                dir("/var/lib/jenkins/workspace/New_demo/my-app/") {
-                sh 'mvn -B -DskipTests clean package'
-                }
-            
+                echo 'Compiling the project...'
+                bat 'mvn clean compile'
             }
         }
-     }
+        stage('Unit Test') {
+            steps {
+                echo 'Running unit tests...'
+                bat 'mvn test'
+            }
+        }
+        stage('Package') {
+            steps {
+                echo 'Packaging the application into a WAR file...'
+                bat 'mvn package'
+            }
+        }
+        stage('Deploy') {
+            steps {
+                echo 'Deploying the WAR file to Tomcat...'
+                deploy adapters: [tomcat9(credentialsId: CREDENTIALS_ID, path: '', url: TOMCAT_URL)],
+                       war: WAR_FILE,
+                       contextPath: 'webapp' // Replace 'webapp' with your desired context path
+            }
+        }
+    }
     post {
-       always {
-          junit(
-        allowEmptyResults: true,
-        testResults: '*/test-reports/.xml'
-      )
-      }
-   } 
+        always {
+            echo 'Pipeline completed.'
+        }
+    }
 }
